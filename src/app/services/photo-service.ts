@@ -6,6 +6,7 @@ import {
   Photo,
 } from '@capacitor/camera';
 import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Preferences } from '@capacitor/preferences';
 
 @Injectable({
   providedIn: 'root',
@@ -13,6 +14,7 @@ import { Filesystem, Directory } from '@capacitor/filesystem';
 export class PhotoService {
   // Array of photos
   public photos: UserPhoto[] = [];
+  private PHOTO_STORAGE: string = 'photos'; // Key for the store
 
   public async addNewToGalley() {
     // Take a photo
@@ -27,6 +29,12 @@ export class PhotoService {
 
     // Add the newly captured photo to the beginning of the photos array
     this.photos.unshift(savedImageFile);
+
+    // Save the photos array (each time a new photo is taken)
+    Preferences.set({
+      key: this.PHOTO_STORAGE,
+      value: JSON.stringify(this.photos),
+    });
   }
 
   private async savePicture(photo: Photo) {
@@ -66,6 +74,25 @@ export class PhotoService {
       };
       reader.readAsDataURL(blob);
     });
+
+  public loadSaved = async () => {
+    // Retrieve cached photo array data
+    const { value } = await Preferences.get({ key: this.PHOTO_STORAGE });
+    this.photos = (value ? JSON.parse(value) : []) as UserPhoto[];
+
+    // Display the photo by reading into base64 format
+    for (const photo of this.photos) {
+      // Read each saved photo's data from the FileSystem
+      const readFile = await Filesystem.readFile({
+        path: photo.filepath,
+        directory: Directory.Data,
+      });
+
+      // Web platform only: Load the photo as base64 data
+      // (because the Filestytem API uses IndexedDB under the hood)
+      photo.webviewPath = `data:image/jpeg;base64,${readFile.data}`;
+    }
+  };
 }
 
 export interface UserPhoto {
