@@ -17,7 +17,7 @@
     <ion-row>
       @for (photo of photoService.photos; track $index) {
       <ion-col size="6">
-        <ion-img [src]="photo.webviewPath"></ion-img>
+        <ion-img [src]="photo.webviewPath" (click)="showActionSheet(photo, $index)"></ion-img>
       </ion-col>
       }
     </ion-row>
